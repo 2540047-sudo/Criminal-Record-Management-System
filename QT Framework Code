@@ -1,0 +1,1420 @@
+#include <QApplication>
+#include <QMainWindow>
+#include <QStackedWidget>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QFormLayout>
+#include <QGridLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QTabWidget>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QComboBox>
+#include <QMessageBox>
+#include <QDate>
+#include <QFrame>
+#include <QScrollArea>
+#include <functional>
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+
+// ============================================================
+//   VALIDATION / HELPER FUNCTIONS (unchanged from console version)
+// ============================================================
+
+string toUpperStr(string s) {
+    for (int i = 0; i < (int)s.length(); i++) s[i] = toupper(s[i]);
+    return s;
+}
+
+string intToStr(int n) { stringstream ss; ss << n; return ss.str(); }
+
+string todayStr() { return QDate::currentDate().toString("yyyy-MM-dd").toStdString(); }
+
+// ============================================================
+//   AUTO ID GENERATORS
+// ============================================================
+
+int criminalCount=0, caseCount=0, evidenceCount=0, arrestCount=0, bailCount=0,
+    sceneCount=0, hearingCount=0, witnessCount=0, victimCount=0, notifCount=0,
+    meetingCount=0, officerCount=0, detectiveCount=0;
+
+string genCriminalID()  { criminalCount++;  string s=intToStr(criminalCount);  while(s.length()<3) s="0"+s; return "CR-"+s; }
+string genCaseID()      { caseCount++;      string s=intToStr(caseCount);      while(s.length()<3) s="0"+s; return "C-"+s; }
+string genEvidenceID()  { evidenceCount++;  string s=intToStr(evidenceCount);  while(s.length()<3) s="0"+s; return "E-"+s; }
+string genArrestID()    { arrestCount++;    string s=intToStr(arrestCount);    while(s.length()<3) s="0"+s; return "A-"+s; }
+string genBailID()      { bailCount++;      string s=intToStr(bailCount);      while(s.length()<3) s="0"+s; return "B-"+s; }
+string genSceneID()     { sceneCount++;     string s=intToStr(sceneCount);     while(s.length()<3) s="0"+s; return "SC-"+s; }
+string genHearingID()   { hearingCount++;   string s=intToStr(hearingCount);   while(s.length()<3) s="0"+s; return "H-"+s; }
+string genWitnessID()   { witnessCount++;   string s=intToStr(witnessCount);   while(s.length()<3) s="0"+s; return "W-"+s; }
+string genVictimID()    { victimCount++;    string s=intToStr(victimCount);    while(s.length()<3) s="0"+s; return "V-"+s; }
+string genNotifID()     { notifCount++;     string s=intToStr(notifCount);     while(s.length()<3) s="0"+s; return "N-"+s; }
+string genMeetingID()   { meetingCount++;   string s=intToStr(meetingCount);   while(s.length()<3) s="0"+s; return "M-"+s; }
+string genOfficerID()   { officerCount++;   string s=intToStr(officerCount);   while(s.length()<3) s="0"+s; return "OFC-"+s; }
+string genDetectiveID() { detectiveCount++; string s=intToStr(detectiveCount); while(s.length()<3) s="0"+s; return "DET-"+s; }
+
+// ============================================================
+//   DATA CLASSES (unchanged business logic from console version)
+// ============================================================
+
+class Person {
+protected:
+    string name; int age; string cnic; string address;
+public:
+    Person(){name="";age=0;cnic="";address="";}
+    Person(string n,int a,string c,string addr){name=n;age=a;cnic=c;address=addr;}
+    string getName(){return name;} void setName(string n){name=n;}
+    int getAge(){return age;} void setAge(int a){age=a;}
+    string getCnic(){return cnic;} void setCnic(string c){cnic=c;}
+    string getAddress(){return address;} void setAddress(string a){address=a;}
+    virtual ~Person(){}
+};
+
+class Case {
+protected:
+    string caseID,title,date,description,linkedCriminalID,status;
+public:
+    Case(){caseID="";title="";date="";description="";linkedCriminalID="";status="Active";}
+    Case(string id,string t,string d,string desc,string cid){caseID=id;title=t;date=d;description=desc;linkedCriminalID=cid;status="Active";}
+    string getCaseID(){return caseID;} void setCaseID(string id){caseID=id;}
+    string getTitle(){return title;} void setTitle(string t){title=t;}
+    string getDate(){return date;} void setDate(string d){date=d;}
+    string getDescription(){return description;} void setDescription(string d){description=d;}
+    string getLinkedCriminalID(){return linkedCriminalID;} void setLinkedCriminalID(string id){linkedCriminalID=id;}
+    string getStatus(){return status;} void setStatus(string s){status=s;}
+    virtual ~Case(){}
+};
+
+class Criminal : public Person {
+    string criminalID, crimeType, threatLevel, bailStatus;
+public:
+    Criminal():Person(){criminalID="";crimeType="";threatLevel="";bailStatus="Not on Bail";}
+    Criminal(string id,string n,int a,string c,string addr,string crime,string threat)
+        :Person(n,a,c,addr){criminalID=id;crimeType=crime;threatLevel=threat;bailStatus="Not on Bail";}
+    string getCriminalID(){return criminalID;} void setCriminalID(string id){criminalID=id;}
+    string getCrimeType(){return crimeType;} void setCrimeType(string c){crimeType=c;}
+    string getThreatLvl(){return threatLevel;} void setThreatLvl(string t){threatLevel=t;}
+    string getBailStatus(){return bailStatus;} void setBailStatus(string b){bailStatus=b;}
+};
+
+class Officer : public Person {
+    string officerID,username,password,badgeNo,department,rank;
+public:
+    Officer():Person(){officerID="";username="";password="";badgeNo="";department="";rank="";}
+    Officer(string id,string n,int a,string c,string addr,string user,string pass,string badge,string dept,string rnk)
+        :Person(n,a,c,addr){officerID=id;username=user;password=pass;badgeNo=badge;department=dept;rank=rnk;}
+    string getOfficerID(){return officerID;} void setOfficerID(string id){officerID=id;}
+    string getUsername(){return username;} void setUsername(string u){username=u;}
+    string getPassword(){return password;} void setPassword(string p){password=p;}
+    string getBadgeNo(){return badgeNo;} void setBadgeNo(string b){badgeNo=b;}
+    string getDepartment(){return department;} void setDepartment(string d){department=d;}
+    string getRank(){return rank;} void setRank(string r){rank=r;}
+};
+
+class Detective : public Person {
+    string detectiveID,username,password,specialization; int caseLoad;
+public:
+    Detective():Person(){detectiveID="";username="";password="";specialization="";caseLoad=0;}
+    Detective(string id,string n,int a,string c,string addr,string user,string pass,string spec)
+        :Person(n,a,c,addr){detectiveID=id;username=user;password=pass;specialization=spec;caseLoad=0;}
+    string getDetectiveID(){return detectiveID;} void setDetectiveID(string id){detectiveID=id;}
+    string getUsername(){return username;} void setUsername(string u){username=u;}
+    string getPassword(){return password;} void setPassword(string p){password=p;}
+    string getSpecialization(){return specialization;} void setSpecialization(string s){specialization=s;}
+    int getCaseLoad(){return caseLoad;} void setCaseLoad(int c){caseLoad=c;}
+    void increaseCaseLoad(){caseLoad++;} void decreaseCaseLoad(){if(caseLoad>0)caseLoad--;}
+};
+
+class Witness : public Person {
+    string witnessID,statement,protectionStatus,linkedCaseID,linkedCriminalID;
+public:
+    Witness():Person(){witnessID="";statement="";protectionStatus="";linkedCaseID="";linkedCriminalID="";}
+    Witness(string id,string n,int a,string c,string addr,string stmt,string prot,string cid,string crimid)
+        :Person(n,a,c,addr){witnessID=id;statement=stmt;protectionStatus=prot;linkedCaseID=cid;linkedCriminalID=crimid;}
+    string getWitnessID(){return witnessID;} void setWitnessID(string id){witnessID=id;}
+    string getStatement(){return statement;} void setStatement(string s){statement=s;}
+    string getProtectionStatus(){return protectionStatus;} void setProtectionStatus(string p){protectionStatus=p;}
+    string getLinkedCaseID(){return linkedCaseID;} void setLinkedCaseID(string id){linkedCaseID=id;}
+    string getLinkedCriminalID(){return linkedCriminalID;} void setLinkedCriminalID(string id){linkedCriminalID=id;}
+};
+
+class Victim : public Person {
+    string victimID,injuryLevel,linkedCaseID,linkedCriminalID;
+public:
+    Victim():Person(){victimID="";injuryLevel="";linkedCaseID="";linkedCriminalID="";}
+    Victim(string id,string n,int a,string c,string addr,string injury,string cid,string crimid)
+        :Person(n,a,c,addr){victimID=id;injuryLevel=injury;linkedCaseID=cid;linkedCriminalID=crimid;}
+    string getVictimID(){return victimID;} void setVictimID(string id){victimID=id;}
+    string getInjuryLevel(){return injuryLevel;} void setInjuryLevel(string i){injuryLevel=i;}
+    string getLinkedCaseID(){return linkedCaseID;} void setLinkedCaseID(string id){linkedCaseID=id;}
+    string getLinkedCriminalID(){return linkedCriminalID;} void setLinkedCriminalID(string id){linkedCriminalID=id;}
+};
+
+class ActiveCase : public Case {
+    string assignedDetectiveID, progress;
+public:
+    ActiveCase():Case(){assignedDetectiveID="Unassigned";progress="Under Investigation";status="Active";}
+    ActiveCase(string id,string t,string d,string desc,string cid)
+        :Case(id,t,d,desc,cid){assignedDetectiveID="Unassigned";progress="Under Investigation";status="Active";}
+    string getAssignedDetectiveID(){return assignedDetectiveID;} void setAssignedDetectiveID(string id){assignedDetectiveID=id;}
+    string getProgress(){return progress;} void setProgress(string p){progress=p;}
+};
+
+class ClosedCase : public Case {
+    string verdict,closingDate,assignedDetectiveID;
+public:
+    ClosedCase():Case(){verdict="";closingDate="";assignedDetectiveID="";status="Closed";}
+    ClosedCase(string id,string t,string d,string desc,string cid,string verd,string closeDate,string detID)
+        :Case(id,t,d,desc,cid){verdict=verd;closingDate=closeDate;assignedDetectiveID=detID;status="Closed";}
+    string getVerdict(){return verdict;} void setVerdict(string v){verdict=v;}
+    string getClosingDate(){return closingDate;} void setClosingDate(string d){closingDate=d;}
+    string getAssignedDetectiveID(){return assignedDetectiveID;} void setAssignedDetectiveID(string id){assignedDetectiveID=id;}
+};
+
+class Evidence {
+    string evidenceID,type,description,linkedCaseID,linkedCriminalID;
+public:
+    Evidence(){evidenceID="";type="";description="";linkedCaseID="";linkedCriminalID="";}
+    Evidence(string id,string t,string desc,string cid,string crimid){evidenceID=id;type=t;description=desc;linkedCaseID=cid;linkedCriminalID=crimid;}
+    string getEvidenceID(){return evidenceID;} string getType(){return type;}
+    string getDescription(){return description;} string getLinkedCaseID(){return linkedCaseID;}
+    string getLinkedCriminalID(){return linkedCriminalID;}
+};
+
+class Arrest {
+    string arrestID,criminalID,criminalName,arrestDate,arrestingOfficer,location;
+public:
+    Arrest(){arrestID="";criminalID="";criminalName="";arrestDate="";arrestingOfficer="";location="";}
+    Arrest(string id,string cid,string cname,string d,string officer,string loc){arrestID=id;criminalID=cid;criminalName=cname;arrestDate=d;arrestingOfficer=officer;location=loc;}
+    string getArrestID(){return arrestID;} string getCriminalID(){return criminalID;}
+    string getCriminalName(){return criminalName;} string getArrestDate(){return arrestDate;}
+    string getArrestingOfficer(){return arrestingOfficer;} string getLocation(){return location;}
+};
+
+class Bail {
+    string bailID,criminalID,criminalName,amount,bailDate,approvedBy;
+public:
+    Bail(){bailID="";criminalID="";criminalName="";amount="";bailDate="";approvedBy="Admin";}
+    Bail(string id,string cid,string cname,string amt,string d,string approved){bailID=id;criminalID=cid;criminalName=cname;amount=amt;bailDate=d;approvedBy=approved;}
+    string getBailID(){return bailID;} string getCriminalID(){return criminalID;}
+    string getCriminalName(){return criminalName;} string getAmount(){return amount;}
+    string getBailDate(){return bailDate;} string getApprovedBy(){return approvedBy;}
+};
+
+class CrimeScene {
+    string sceneID,location,sceneDate,crimeType,description,linkedCaseID;
+public:
+    CrimeScene(){sceneID="";location="";sceneDate="";crimeType="";description="";linkedCaseID="";}
+    CrimeScene(string id,string loc,string d,string type,string desc,string cid){sceneID=id;location=loc;sceneDate=d;crimeType=type;description=desc;linkedCaseID=cid;}
+    string getSceneID(){return sceneID;} string getLocation(){return location;}
+    string getSceneDate(){return sceneDate;} string getCrimeType(){return crimeType;}
+    string getDescription(){return description;} string getLinkedCaseID(){return linkedCaseID;}
+};
+
+class CourtHearing {
+    string hearingID,caseID,hearingDate,judgeName,verdict;
+public:
+    CourtHearing(){hearingID="";caseID="";hearingDate="";judgeName="";verdict="Pending";}
+    CourtHearing(string id,string cid,string d,string judge,string verd){hearingID=id;caseID=cid;hearingDate=d;judgeName=judge;verdict=verd;}
+    string getHearingID(){return hearingID;} string getCaseID(){return caseID;}
+    string getHearingDate(){return hearingDate;} string getJudgeName(){return judgeName;}
+    string getVerdict(){return verdict;}
+};
+
+class Notification {
+    string notifID,message,criminalID,criminalName,notifType,notifDate;
+public:
+    Notification(){notifID="";message="";criminalID="";criminalName="";notifType="";notifDate="";}
+    Notification(string id,string msg,string cid,string cname,string type,string d){notifID=id;message=msg;criminalID=cid;criminalName=cname;notifType=type;notifDate=d;}
+    string getNotifID(){return notifID;} string getMessage(){return message;}
+    string getCriminalID(){return criminalID;} string getCriminalName(){return criminalName;}
+    string getNotifType(){return notifType;} string getNotifDate(){return notifDate;}
+};
+
+class Meeting {
+    string meetingID,personUsername,personType,meetingDate,meetingTime;
+public:
+    Meeting(){meetingID="";personUsername="";personType="";meetingDate="";meetingTime="";}
+    Meeting(string id,string user,string type,string d,string t){meetingID=id;personUsername=user;personType=type;meetingDate=d;meetingTime=t;}
+    string getMeetingID(){return meetingID;} string getPersonUsername(){return personUsername;}
+    string getPersonType(){return personType;} string getMeetingDate(){return meetingDate;}
+    string getMeetingTime(){return meetingTime;}
+};
+
+// ============================================================
+//   GLOBAL DATA VECTORS
+// ============================================================
+
+vector<Criminal>     criminals;
+vector<Officer>      officers;
+vector<Detective>    detectives;
+vector<ActiveCase>   activeCases;
+vector<ClosedCase>   closedCases;
+vector<Evidence>     evidences;
+vector<Arrest>       arrests;
+vector<Bail>         bails;
+vector<CrimeScene>   crimeScenes;
+vector<CourtHearing> courtHearings;
+vector<Witness>      witnesses;
+vector<Victim>       victims;
+vector<Notification> notifications;
+vector<Meeting>      meetings;
+
+// ============================================================
+//   FILE HANDLERS - SAVE (unchanged format from console version)
+// ============================================================
+
+void saveCriminals(){ofstream f("criminals.txt");for(auto&c:criminals)f<<c.getCriminalID()<<"|"<<c.getName()<<"|"<<c.getAge()<<"|"<<c.getCnic()<<"|"<<c.getAddress()<<"|"<<c.getCrimeType()<<"|"<<c.getThreatLvl()<<"|"<<c.getBailStatus()<<"\n";}
+void saveOfficers(){ofstream f("officers.txt");for(auto&o:officers)f<<o.getOfficerID()<<"|"<<o.getName()<<"|"<<o.getAge()<<"|"<<o.getCnic()<<"|"<<o.getAddress()<<"|"<<o.getUsername()<<"|"<<o.getPassword()<<"|"<<o.getBadgeNo()<<"|"<<o.getDepartment()<<"|"<<o.getRank()<<"\n";}
+void saveDetectives(){ofstream f("detectives.txt");for(auto&d:detectives)f<<d.getDetectiveID()<<"|"<<d.getName()<<"|"<<d.getAge()<<"|"<<d.getCnic()<<"|"<<d.getAddress()<<"|"<<d.getUsername()<<"|"<<d.getPassword()<<"|"<<d.getSpecialization()<<"|"<<d.getCaseLoad()<<"\n";}
+void saveActiveCases(){ofstream f("active_cases.txt");for(auto&a:activeCases)f<<a.getCaseID()<<"|"<<a.getTitle()<<"|"<<a.getDate()<<"|"<<a.getDescription()<<"|"<<a.getLinkedCriminalID()<<"|"<<a.getAssignedDetectiveID()<<"|"<<a.getProgress()<<"\n";}
+void saveClosedCases(){ofstream f("closed_cases.txt");for(auto&c:closedCases)f<<c.getCaseID()<<"|"<<c.getTitle()<<"|"<<c.getDate()<<"|"<<c.getDescription()<<"|"<<c.getLinkedCriminalID()<<"|"<<c.getVerdict()<<"|"<<c.getClosingDate()<<"|"<<c.getAssignedDetectiveID()<<"\n";}
+void saveEvidence(){ofstream f("evidence.txt");for(auto&e:evidences)f<<e.getEvidenceID()<<"|"<<e.getType()<<"|"<<e.getDescription()<<"|"<<e.getLinkedCaseID()<<"|"<<e.getLinkedCriminalID()<<"\n";}
+void saveArrests(){ofstream f("arrests.txt");for(auto&a:arrests)f<<a.getArrestID()<<"|"<<a.getCriminalID()<<"|"<<a.getCriminalName()<<"|"<<a.getArrestDate()<<"|"<<a.getArrestingOfficer()<<"|"<<a.getLocation()<<"\n";}
+void saveBails(){ofstream f("bail.txt");for(auto&b:bails)f<<b.getBailID()<<"|"<<b.getCriminalID()<<"|"<<b.getCriminalName()<<"|"<<b.getAmount()<<"|"<<b.getBailDate()<<"|"<<b.getApprovedBy()<<"\n";}
+void saveCrimeScenes(){ofstream f("crime_scenes.txt");for(auto&c:crimeScenes)f<<c.getSceneID()<<"|"<<c.getLocation()<<"|"<<c.getSceneDate()<<"|"<<c.getCrimeType()<<"|"<<c.getDescription()<<"|"<<c.getLinkedCaseID()<<"\n";}
+void saveCourtHearings(){ofstream f("court_hearings.txt");for(auto&c:courtHearings)f<<c.getHearingID()<<"|"<<c.getCaseID()<<"|"<<c.getHearingDate()<<"|"<<c.getJudgeName()<<"|"<<c.getVerdict()<<"\n";}
+void saveWitnesses(){ofstream f("witnesses.txt");for(auto&w:witnesses)f<<w.getWitnessID()<<"|"<<w.getName()<<"|"<<w.getAge()<<"|"<<w.getCnic()<<"|"<<w.getAddress()<<"|"<<w.getStatement()<<"|"<<w.getProtectionStatus()<<"|"<<w.getLinkedCaseID()<<"|"<<w.getLinkedCriminalID()<<"\n";}
+void saveVictims(){ofstream f("victims.txt");for(auto&v:victims)f<<v.getVictimID()<<"|"<<v.getName()<<"|"<<v.getAge()<<"|"<<v.getCnic()<<"|"<<v.getAddress()<<"|"<<v.getInjuryLevel()<<"|"<<v.getLinkedCaseID()<<"|"<<v.getLinkedCriminalID()<<"\n";}
+void saveNotifications(){ofstream f("notifications.txt");for(auto&n:notifications)f<<n.getNotifID()<<"|"<<n.getMessage()<<"|"<<n.getCriminalID()<<"|"<<n.getCriminalName()<<"|"<<n.getNotifType()<<"|"<<n.getNotifDate()<<"\n";}
+void saveMeetings(){ofstream f("meetings.txt");for(auto&m:meetings)f<<m.getMeetingID()<<"|"<<m.getPersonUsername()<<"|"<<m.getPersonType()<<"|"<<m.getMeetingDate()<<"|"<<m.getMeetingTime()<<"\n";}
+
+// ============================================================
+//   FILE HANDLERS - LOAD
+// ============================================================
+
+void loadCriminals(){ifstream f("criminals.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,name,ageS,cnic,addr,crime,threat,bail;getline(ss,id,'|');getline(ss,name,'|');getline(ss,ageS,'|');getline(ss,cnic,'|');getline(ss,addr,'|');getline(ss,crime,'|');getline(ss,threat,'|');getline(ss,bail,'|');Criminal c(id,name,atoi(ageS.c_str()),cnic,addr,crime,threat);c.setBailStatus(bail);criminals.push_back(c);criminalCount++;}}
+void loadOfficers(){ifstream f("officers.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,name,ageS,cnic,addr,user,pass,badge,dept,rnk;getline(ss,id,'|');getline(ss,name,'|');getline(ss,ageS,'|');getline(ss,cnic,'|');getline(ss,addr,'|');getline(ss,user,'|');getline(ss,pass,'|');getline(ss,badge,'|');getline(ss,dept,'|');getline(ss,rnk,'|');Officer o(id,name,atoi(ageS.c_str()),cnic,addr,user,pass,badge,dept,rnk);officers.push_back(o);officerCount++;}}
+void loadDetectives(){ifstream f("detectives.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,name,ageS,cnic,addr,user,pass,spec,loadS;getline(ss,id,'|');getline(ss,name,'|');getline(ss,ageS,'|');getline(ss,cnic,'|');getline(ss,addr,'|');getline(ss,user,'|');getline(ss,pass,'|');getline(ss,spec,'|');getline(ss,loadS,'|');Detective d(id,name,atoi(ageS.c_str()),cnic,addr,user,pass,spec);d.setCaseLoad(atoi(loadS.c_str()));detectives.push_back(d);detectiveCount++;}}
+void loadActiveCases(){ifstream f("active_cases.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,t,d,desc,cid,det,prog;getline(ss,id,'|');getline(ss,t,'|');getline(ss,d,'|');getline(ss,desc,'|');getline(ss,cid,'|');getline(ss,det,'|');getline(ss,prog,'|');ActiveCase a(id,t,d,desc,cid);a.setAssignedDetectiveID(det);a.setProgress(prog);activeCases.push_back(a);caseCount++;}}
+void loadClosedCases(){ifstream f("closed_cases.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,t,d,desc,cid,verd,cd,det;getline(ss,id,'|');getline(ss,t,'|');getline(ss,d,'|');getline(ss,desc,'|');getline(ss,cid,'|');getline(ss,verd,'|');getline(ss,cd,'|');getline(ss,det,'|');ClosedCase c(id,t,d,desc,cid,verd,cd,det);closedCases.push_back(c);}}
+void loadEvidence(){ifstream f("evidence.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,t,desc,cid,crimid;getline(ss,id,'|');getline(ss,t,'|');getline(ss,desc,'|');getline(ss,cid,'|');getline(ss,crimid,'|');evidences.push_back(Evidence(id,t,desc,cid,crimid));evidenceCount++;}}
+void loadArrests(){ifstream f("arrests.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,cid,cname,d,off,loc;getline(ss,id,'|');getline(ss,cid,'|');getline(ss,cname,'|');getline(ss,d,'|');getline(ss,off,'|');getline(ss,loc,'|');arrests.push_back(Arrest(id,cid,cname,d,off,loc));arrestCount++;}}
+void loadBails(){ifstream f("bail.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,cid,cname,amt,d,appr;getline(ss,id,'|');getline(ss,cid,'|');getline(ss,cname,'|');getline(ss,amt,'|');getline(ss,d,'|');getline(ss,appr,'|');bails.push_back(Bail(id,cid,cname,amt,d,appr));bailCount++;}}
+void loadCrimeScenes(){ifstream f("crime_scenes.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,loc,d,type,desc,cid;getline(ss,id,'|');getline(ss,loc,'|');getline(ss,d,'|');getline(ss,type,'|');getline(ss,desc,'|');getline(ss,cid,'|');crimeScenes.push_back(CrimeScene(id,loc,d,type,desc,cid));sceneCount++;}}
+void loadCourtHearings(){ifstream f("court_hearings.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,cid,d,judge,verd;getline(ss,id,'|');getline(ss,cid,'|');getline(ss,d,'|');getline(ss,judge,'|');getline(ss,verd,'|');courtHearings.push_back(CourtHearing(id,cid,d,judge,verd));hearingCount++;}}
+void loadWitnesses(){ifstream f("witnesses.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,name,ageS,cnic,addr,stmt,prot,cid,crimid;getline(ss,id,'|');getline(ss,name,'|');getline(ss,ageS,'|');getline(ss,cnic,'|');getline(ss,addr,'|');getline(ss,stmt,'|');getline(ss,prot,'|');getline(ss,cid,'|');getline(ss,crimid,'|');witnesses.push_back(Witness(id,name,atoi(ageS.c_str()),cnic,addr,stmt,prot,cid,crimid));witnessCount++;}}
+void loadVictims(){ifstream f("victims.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,name,ageS,cnic,addr,inj,cid,crimid;getline(ss,id,'|');getline(ss,name,'|');getline(ss,ageS,'|');getline(ss,cnic,'|');getline(ss,addr,'|');getline(ss,inj,'|');getline(ss,cid,'|');getline(ss,crimid,'|');victims.push_back(Victim(id,name,atoi(ageS.c_str()),cnic,addr,inj,cid,crimid));victimCount++;}}
+void loadNotifications(){ifstream f("notifications.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,msg,cid,cname,type,d;getline(ss,id,'|');getline(ss,msg,'|');getline(ss,cid,'|');getline(ss,cname,'|');getline(ss,type,'|');getline(ss,d,'|');notifications.push_back(Notification(id,msg,cid,cname,type,d));notifCount++;}}
+void loadMeetings(){ifstream f("meetings.txt");if(!f.is_open())return;string line;while(getline(f,line)){if(line.empty())continue;stringstream ss(line);string id,user,type,d,t;getline(ss,id,'|');getline(ss,user,'|');getline(ss,type,'|');getline(ss,d,'|');getline(ss,t,'|');meetings.push_back(Meeting(id,user,type,d,t));meetingCount++;}}
+
+void loadAllData(){
+    loadCriminals();loadOfficers();loadDetectives();loadActiveCases();loadClosedCases();
+    loadEvidence();loadArrests();loadBails();loadCrimeScenes();loadCourtHearings();
+    loadWitnesses();loadVictims();loadNotifications();loadMeetings();
+}
+
+// ============================================================
+//   FIND HELPERS
+// ============================================================
+
+int findCriminal(string id){for(int i=0;i<(int)criminals.size();i++)if(criminals[i].getCriminalID()==id)return i;return -1;}
+int findActiveCase(string id){for(int i=0;i<(int)activeCases.size();i++)if(activeCases[i].getCaseID()==id)return i;return -1;}
+int findDetective(string username){for(int i=0;i<(int)detectives.size();i++)if(detectives[i].getUsername()==username)return i;return -1;}
+int findOfficer(string username){for(int i=0;i<(int)officers.size();i++)if(officers[i].getUsername()==username)return i;return -1;}
+
+// ============================================================
+//   GUI HELPERS
+// ============================================================
+
+QWidget* gWindowRef = nullptr; // used as dialog parent fallback
+
+QTableWidget* makeTable(const QStringList& headers){
+    QTableWidget* t = new QTableWidget();
+    t->setColumnCount(headers.size());
+    t->setHorizontalHeaderLabels(headers);
+    t->horizontalHeader()->setStretchLastSection(true);
+    t->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    t->setSelectionBehavior(QAbstractItemView::SelectRows);
+    t->setSelectionMode(QAbstractItemView::SingleSelection);
+    t->setAlternatingRowColors(true);
+    return t;
+}
+
+void setRow(QTableWidget* t, int row, const QStringList& vals){
+    for(int i=0;i<vals.size();i++) t->setItem(row,i,new QTableWidgetItem(vals[i]));
+}
+
+// Generic text-field form dialog. Returns empty list if cancelled.
+QStringList getFormInput(QWidget* parent, const QString& title, const QStringList& labels, const QStringList& initial = QStringList()){
+    QDialog dlg(parent);
+    dlg.setWindowTitle(title);
+    dlg.setMinimumWidth(380);
+    QVBoxLayout* outer = new QVBoxLayout(&dlg);
+    QFormLayout* form = new QFormLayout();
+    QList<QLineEdit*> edits;
+    for(int i=0;i<labels.size();i++){
+        QLineEdit* e = new QLineEdit();
+        if(i < initial.size()) e->setText(initial[i]);
+        form->addRow(labels[i]+":", e);
+        edits.push_back(e);
+    }
+    outer->addLayout(form);
+    QDialogButtonBox* box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    outer->addWidget(box);
+    QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    while(true){
+        if(dlg.exec() != QDialog::Accepted) return QStringList();
+        bool ok = true;
+        for(auto* e : edits) if(e->text().trimmed().isEmpty()) ok = false;
+        if(ok){
+            QStringList result;
+            for(auto* e : edits) result << e->text().trimmed();
+            return result;
+        }
+        QMessageBox::warning(parent, "Missing fields", "Please fill in all fields.");
+    }
+}
+
+// Dialog with a combobox of choices, returns selected text or "" if cancelled.
+QString getChoiceDialog(QWidget* parent, const QString& title, const QString& label, const QStringList& choices, const QString& current=""){
+    QDialog dlg(parent);
+    dlg.setWindowTitle(title);
+    QVBoxLayout* outer = new QVBoxLayout(&dlg);
+    QFormLayout* form = new QFormLayout();
+    QComboBox* combo = new QComboBox();
+    combo->addItems(choices);
+    if(!current.isEmpty()){
+        int idx = combo->findText(current);
+        if(idx>=0) combo->setCurrentIndex(idx);
+    }
+    form->addRow(label, combo);
+    outer->addLayout(form);
+    QDialogButtonBox* box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    outer->addWidget(box);
+    QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    if(dlg.exec() != QDialog::Accepted) return "";
+    return combo->currentText();
+}
+
+void info(QWidget* p, const QString& msg){ QMessageBox::information(p, "Success", msg); }
+void warn(QWidget* p, const QString& msg){ QMessageBox::warning(p, "Notice", msg); }
+
+// Generic module tab builder
+QWidget* makeModuleTab(const QString& heading, const QStringList& headers,
+                       std::function<void(QTableWidget*)> refresh,
+                       const std::vector<std::pair<QString, std::function<void(QTableWidget*)>>>& actions){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    QLabel* h = new QLabel(heading);
+    h->setProperty("class","sectionHeading");
+    lay->addWidget(h);
+    QTableWidget* table = makeTable(headers);
+    refresh(table);
+    lay->addWidget(table);
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    for(auto& act : actions){
+        QPushButton* b = new QPushButton(act.first);
+        QObject::connect(b, &QPushButton::clicked, [table, fn=act.second](){ fn(table); });
+        btnRow->addWidget(b);
+    }
+    btnRow->addStretch();
+    lay->addLayout(btnRow);
+    return w;
+}
+
+QString selectedCell(QTableWidget* t, int col){
+    int row = t->currentRow();
+    if(row < 0) return "";
+    QTableWidgetItem* it = t->item(row, col);
+    return it ? it->text() : "";
+}
+
+// ============================================================
+//   REFRESH FUNCTIONS PER ENTITY
+// ============================================================
+
+void refreshCriminals(QTableWidget* t){
+    t->setRowCount((int)criminals.size());
+    for(int i=0;i<(int)criminals.size();i++){
+        auto& c = criminals[i];
+        setRow(t,i,{QString::fromStdString(c.getCriminalID()),QString::fromStdString(c.getName()),
+                      QString::number(c.getAge()),QString::fromStdString(c.getCnic()),
+                      QString::fromStdString(c.getAddress()),QString::fromStdString(c.getCrimeType()),
+                      QString::fromStdString(c.getThreatLvl()),QString::fromStdString(c.getBailStatus())});
+    }
+}
+void refreshActiveCases(QTableWidget* t){
+    t->setRowCount((int)activeCases.size());
+    for(int i=0;i<(int)activeCases.size();i++){
+        auto& a = activeCases[i];
+        setRow(t,i,{QString::fromStdString(a.getCaseID()),QString::fromStdString(a.getTitle()),
+                      QString::fromStdString(a.getDate()),QString::fromStdString(a.getDescription()),
+                      QString::fromStdString(a.getLinkedCriminalID()),QString::fromStdString(a.getAssignedDetectiveID()),
+                      QString::fromStdString(a.getProgress())});
+    }
+}
+void refreshClosedCases(QTableWidget* t){
+    t->setRowCount((int)closedCases.size());
+    for(int i=0;i<(int)closedCases.size();i++){
+        auto& c = closedCases[i];
+        setRow(t,i,{QString::fromStdString(c.getCaseID()),QString::fromStdString(c.getTitle()),
+                      QString::fromStdString(c.getDate()),QString::fromStdString(c.getClosingDate()),
+                      QString::fromStdString(c.getLinkedCriminalID()),QString::fromStdString(c.getAssignedDetectiveID()),
+                      QString::fromStdString(c.getVerdict())});
+    }
+}
+void refreshEvidence(QTableWidget* t){
+    t->setRowCount((int)evidences.size());
+    for(int i=0;i<(int)evidences.size();i++){
+        auto& e = evidences[i];
+        setRow(t,i,{QString::fromStdString(e.getEvidenceID()),QString::fromStdString(e.getType()),
+                      QString::fromStdString(e.getDescription()),QString::fromStdString(e.getLinkedCaseID()),
+                      QString::fromStdString(e.getLinkedCriminalID())});
+    }
+}
+void refreshWitnesses(QTableWidget* t){
+    t->setRowCount((int)witnesses.size());
+    for(int i=0;i<(int)witnesses.size();i++){
+        auto& w = witnesses[i];
+        setRow(t,i,{QString::fromStdString(w.getWitnessID()),QString::fromStdString(w.getName()),
+                      QString::number(w.getAge()),QString::fromStdString(w.getStatement()),
+                      QString::fromStdString(w.getProtectionStatus()),QString::fromStdString(w.getLinkedCaseID()),
+                      QString::fromStdString(w.getLinkedCriminalID())});
+    }
+}
+void refreshVictims(QTableWidget* t){
+    t->setRowCount((int)victims.size());
+    for(int i=0;i<(int)victims.size();i++){
+        auto& v = victims[i];
+        setRow(t,i,{QString::fromStdString(v.getVictimID()),QString::fromStdString(v.getName()),
+                      QString::number(v.getAge()),QString::fromStdString(v.getInjuryLevel()),
+                      QString::fromStdString(v.getLinkedCaseID()),QString::fromStdString(v.getLinkedCriminalID())});
+    }
+}
+void refreshArrests(QTableWidget* t){
+    t->setRowCount((int)arrests.size());
+    for(int i=0;i<(int)arrests.size();i++){
+        auto& a = arrests[i];
+        setRow(t,i,{QString::fromStdString(a.getArrestID()),QString::fromStdString(a.getCriminalID()),
+                      QString::fromStdString(a.getCriminalName()),QString::fromStdString(a.getArrestDate()),
+                      QString::fromStdString(a.getArrestingOfficer()),QString::fromStdString(a.getLocation())});
+    }
+}
+void refreshBails(QTableWidget* t){
+    t->setRowCount((int)bails.size());
+    for(int i=0;i<(int)bails.size();i++){
+        auto& b = bails[i];
+        setRow(t,i,{QString::fromStdString(b.getBailID()),QString::fromStdString(b.getCriminalID()),
+                      QString::fromStdString(b.getCriminalName()),QString::fromStdString(b.getAmount()),
+                      QString::fromStdString(b.getBailDate()),QString::fromStdString(b.getApprovedBy())});
+    }
+}
+void refreshCrimeScenes(QTableWidget* t){
+    t->setRowCount((int)crimeScenes.size());
+    for(int i=0;i<(int)crimeScenes.size();i++){
+        auto& c = crimeScenes[i];
+        setRow(t,i,{QString::fromStdString(c.getSceneID()),QString::fromStdString(c.getLocation()),
+                      QString::fromStdString(c.getSceneDate()),QString::fromStdString(c.getCrimeType()),
+                      QString::fromStdString(c.getDescription()),QString::fromStdString(c.getLinkedCaseID())});
+    }
+}
+void refreshCourtHearings(QTableWidget* t){
+    t->setRowCount((int)courtHearings.size());
+    for(int i=0;i<(int)courtHearings.size();i++){
+        auto& c = courtHearings[i];
+        setRow(t,i,{QString::fromStdString(c.getHearingID()),QString::fromStdString(c.getCaseID()),
+                      QString::fromStdString(c.getHearingDate()),QString::fromStdString(c.getJudgeName()),
+                      QString::fromStdString(c.getVerdict())});
+    }
+}
+void refreshNotifications(QTableWidget* t){
+    t->setRowCount((int)notifications.size());
+    for(int i=0;i<(int)notifications.size();i++){
+        auto& n = notifications[i];
+        setRow(t,i,{QString::fromStdString(n.getNotifID()),QString::fromStdString(n.getNotifType()),
+                      QString::fromStdString(n.getMessage()),QString::fromStdString(n.getCriminalName()),
+                      QString::fromStdString(n.getNotifDate())});
+    }
+}
+void refreshOfficers(QTableWidget* t){
+    t->setRowCount((int)officers.size());
+    for(int i=0;i<(int)officers.size();i++){
+        auto& o = officers[i];
+        setRow(t,i,{QString::fromStdString(o.getOfficerID()),QString::fromStdString(o.getName()),
+                      QString::fromStdString(o.getUsername()),QString::fromStdString(o.getBadgeNo()),
+                      QString::fromStdString(o.getDepartment()),QString::fromStdString(o.getRank())});
+    }
+}
+void refreshDetectives(QTableWidget* t){
+    t->setRowCount((int)detectives.size());
+    for(int i=0;i<(int)detectives.size();i++){
+        auto& d = detectives[i];
+        setRow(t,i,{QString::fromStdString(d.getDetectiveID()),QString::fromStdString(d.getName()),
+                      QString::fromStdString(d.getUsername()),QString::fromStdString(d.getSpecialization()),
+                      QString::number(d.getCaseLoad())});
+    }
+}
+void refreshMeetings(QTableWidget* t){
+    t->setRowCount((int)meetings.size());
+    for(int i=0;i<(int)meetings.size();i++){
+        auto& m = meetings[i];
+        setRow(t,i,{QString::fromStdString(m.getMeetingID()),QString::fromStdString(m.getPersonUsername()),
+                      QString::fromStdString(m.getPersonType()),QString::fromStdString(m.getMeetingDate()),
+                      QString::fromStdString(m.getMeetingTime())});
+    }
+}
+void refreshDetectiveAssignedCases(QTableWidget* t, const string& detUsername){
+    t->setRowCount(0);
+    int row=0;
+    for(auto& a : activeCases){
+        if(a.getAssignedDetectiveID()==detUsername){
+            t->insertRow(row);
+            setRow(t,row,{QString::fromStdString(a.getCaseID()),QString::fromStdString(a.getTitle()),
+                            QString::fromStdString(a.getDate()),QString::fromStdString(a.getDescription()),
+                            QString::fromStdString(a.getProgress())});
+            row++;
+        }
+    }
+}
+
+QStringList critList(){
+    QStringList l;
+    for(auto& c: criminals) l << QString::fromStdString(c.getCriminalID()+" - "+c.getName());
+    return l;
+}
+string idFromCombo(const QString& comboText){
+    return comboText.section(" - ",0,0).toStdString();
+}
+
+// ============================================================
+//   ADD / ACTION FUNCTIONS (mirrors original console logic)
+// ============================================================
+
+void doAddCriminal(QWidget* parent){
+    QStringList vals = getFormInput(parent, "Add Criminal", {"Name","Age","CNIC","Address","Crime Type"});
+    if(vals.isEmpty()) return;
+    QString threat = getChoiceDialog(parent, "Threat Level", "Threat Level", {"LOW","MEDIUM","HIGH","MOST WANTED"});
+    if(threat.isEmpty()) return;
+    string id = genCriminalID();
+    Criminal c(id, vals[0].toStdString(), vals[1].toInt(), vals[2].toStdString(), vals[3].toStdString(), vals[4].toStdString(), threat.toStdString());
+    criminals.push_back(c);
+    saveCriminals();
+    if(threat=="MOST WANTED"){
+        string nid = genNotifID();
+        string msg = "ALERT: " + c.getName() + " is MOST WANTED - " + c.getCrimeType();
+        notifications.push_back(Notification(nid, msg, id, c.getName(), "MOST WANTED", todayStr()));
+        saveNotifications();
+        warn(parent, QString::fromStdString(msg));
+    }
+    info(parent, "Criminal added! ID: " + QString::fromStdString(id));
+}
+
+void doUpdateCriminal(QWidget* parent, QTableWidget* table){
+    QString id = selectedCell(table,0);
+    if(id.isEmpty()){ warn(parent,"Select a criminal from the table first."); return; }
+    int idx = findCriminal(id.toStdString());
+    if(idx==-1){ warn(parent,"Criminal not found."); return; }
+    QString field = getChoiceDialog(parent,"Update Criminal","Field to update", {"Name","Age","Address","Crime Type","Threat Level"});
+    if(field.isEmpty()) return;
+    if(field=="Name"){
+        QStringList v = getFormInput(parent,"Update Name",{"New Name"},{QString::fromStdString(criminals[idx].getName())});
+        if(!v.isEmpty()) criminals[idx].setName(v[0].toStdString());
+    } else if(field=="Age"){
+        QStringList v = getFormInput(parent,"Update Age",{"New Age"},{QString::number(criminals[idx].getAge())});
+        if(!v.isEmpty()) criminals[idx].setAge(v[0].toInt());
+    } else if(field=="Address"){
+        QStringList v = getFormInput(parent,"Update Address",{"New Address"},{QString::fromStdString(criminals[idx].getAddress())});
+        if(!v.isEmpty()) criminals[idx].setAddress(v[0].toStdString());
+    } else if(field=="Crime Type"){
+        QStringList v = getFormInput(parent,"Update Crime Type",{"New Crime Type"},{QString::fromStdString(criminals[idx].getCrimeType())});
+        if(!v.isEmpty()) criminals[idx].setCrimeType(v[0].toStdString());
+    } else if(field=="Threat Level"){
+        QString t = getChoiceDialog(parent,"Threat Level","New Threat Level",{"LOW","MEDIUM","HIGH","MOST WANTED"}, QString::fromStdString(criminals[idx].getThreatLvl()));
+        if(!t.isEmpty()){
+            criminals[idx].setThreatLvl(t.toStdString());
+            if(t=="MOST WANTED"){
+                string nid=genNotifID();
+                string msg="ALERT: "+criminals[idx].getName()+" updated to MOST WANTED!";
+                notifications.push_back(Notification(nid,msg,id.toStdString(),criminals[idx].getName(),"MOST WANTED",todayStr()));
+                saveNotifications();
+                warn(parent, QString::fromStdString(msg));
+            }
+        }
+    }
+    saveCriminals();
+    info(parent,"Criminal updated!");
+}
+
+void doDeleteCriminal(QWidget* parent, QTableWidget* table){
+    QString id = selectedCell(table,0);
+    if(id.isEmpty()){ warn(parent,"Select a criminal from the table first."); return; }
+    int idx = findCriminal(id.toStdString());
+    if(idx==-1){ warn(parent,"Criminal not found."); return; }
+    auto reply = QMessageBox::question(parent,"Confirm Delete","Delete "+QString::fromStdString(criminals[idx].getName())+" and all linked active cases?");
+    if(reply != QMessageBox::Yes) return;
+    criminals.erase(criminals.begin()+idx);
+    saveCriminals();
+    for(int i=(int)activeCases.size()-1;i>=0;i--)
+        if(activeCases[i].getLinkedCriminalID()==id.toStdString()) activeCases.erase(activeCases.begin()+i);
+    saveActiveCases();
+    info(parent,"Criminal and linked cases deleted.");
+}
+
+void doAddCase(QWidget* parent){
+    if(criminals.empty()){ warn(parent,"Add a criminal first."); return; }
+    QString crim = getChoiceDialog(parent,"Add Case","Link to Criminal", critList());
+    if(crim.isEmpty()) return;
+    QStringList vals = getFormInput(parent,"Add Case",{"Case Title","Case Date (YYYY-MM-DD)","Description"});
+    if(vals.isEmpty()) return;
+    string caseID = genCaseID();
+    activeCases.push_back(ActiveCase(caseID, vals[0].toStdString(), vals[1].toStdString(), vals[2].toStdString(), idFromCombo(crim)));
+    saveActiveCases();
+    info(parent,"Case added! ID: "+QString::fromStdString(caseID));
+}
+
+void doUpdateCase(QWidget* parent, QTableWidget* table){
+    QString id = selectedCell(table,0);
+    if(id.isEmpty()){ warn(parent,"Select an active case first."); return; }
+    int idx = findActiveCase(id.toStdString());
+    if(idx==-1){ warn(parent,"Case not found."); return; }
+    QString field = getChoiceDialog(parent,"Update Case","Field to update",{"Title","Description","Progress"});
+    if(field.isEmpty()) return;
+    if(field=="Title"){
+        QStringList v=getFormInput(parent,"Update Title",{"New Title"},{QString::fromStdString(activeCases[idx].getTitle())});
+        if(!v.isEmpty()) activeCases[idx].setTitle(v[0].toStdString());
+    } else if(field=="Description"){
+        QStringList v=getFormInput(parent,"Update Description",{"New Description"},{QString::fromStdString(activeCases[idx].getDescription())});
+        if(!v.isEmpty()) activeCases[idx].setDescription(v[0].toStdString());
+    } else if(field=="Progress"){
+        QStringList v=getFormInput(parent,"Update Progress",{"New Progress"},{QString::fromStdString(activeCases[idx].getProgress())});
+        if(!v.isEmpty()) activeCases[idx].setProgress(v[0].toStdString());
+    }
+    saveActiveCases();
+    info(parent,"Case updated!");
+}
+
+void doAddEvidence(QWidget* parent){
+    if(criminals.empty()){ warn(parent,"Add a criminal first."); return; }
+    QString crim = getChoiceDialog(parent,"Add Evidence","Link to Criminal", critList());
+    if(crim.isEmpty()) return;
+    QStringList vals = getFormInput(parent,"Add Evidence",{"Linked Case ID","Evidence Type","Description"});
+    if(vals.isEmpty()) return;
+    string id = genEvidenceID();
+    evidences.push_back(Evidence(id, vals[1].toStdString(), vals[2].toStdString(), vals[0].toStdString(), idFromCombo(crim)));
+    saveEvidence();
+    info(parent,"Evidence added! ID: "+QString::fromStdString(id));
+}
+
+void doAddWitness(QWidget* parent){
+    if(criminals.empty()){ warn(parent,"Add a criminal first."); return; }
+    QString crim = getChoiceDialog(parent,"Add Witness","Link to Criminal", critList());
+    if(crim.isEmpty()) return;
+    QStringList vals = getFormInput(parent,"Add Witness",{"Linked Case ID","Witness Name","Age","CNIC","Address","Statement","Protection Status"});
+    if(vals.isEmpty()) return;
+    string id = genWitnessID();
+    witnesses.push_back(Witness(id, vals[1].toStdString(), vals[2].toInt(), vals[3].toStdString(), vals[4].toStdString(), vals[5].toStdString(), vals[6].toStdString(), vals[0].toStdString(), idFromCombo(crim)));
+    saveWitnesses();
+    info(parent,"Witness added! ID: "+QString::fromStdString(id));
+}
+
+void doAddVictim(QWidget* parent){
+    if(criminals.empty()){ warn(parent,"Add a criminal first."); return; }
+    QString crim = getChoiceDialog(parent,"Add Victim","Link to Criminal", critList());
+    if(crim.isEmpty()) return;
+    QStringList vals = getFormInput(parent,"Add Victim",{"Linked Case ID","Victim Name","Age","CNIC","Address","Injury Level"});
+    if(vals.isEmpty()) return;
+    string id = genVictimID();
+    victims.push_back(Victim(id, vals[1].toStdString(), vals[2].toInt(), vals[3].toStdString(), vals[4].toStdString(), vals[5].toStdString(), vals[0].toStdString(), idFromCombo(crim)));
+    saveVictims();
+    info(parent,"Victim added! ID: "+QString::fromStdString(id));
+}
+
+void doAddArrest(QWidget* parent, const string& officerName){
+    if(criminals.empty()){ warn(parent,"Add a criminal first."); return; }
+    QString crim = getChoiceDialog(parent,"Add Arrest","Criminal", critList());
+    if(crim.isEmpty()) return;
+    int idx = findCriminal(idFromCombo(crim));
+    if(idx==-1) return;
+    QStringList vals = getFormInput(parent,"Add Arrest",{"Arrest Date (YYYY-MM-DD)","Location"});
+    if(vals.isEmpty()) return;
+    string id = genArrestID();
+    arrests.push_back(Arrest(id, idFromCombo(crim), criminals[idx].getName(), vals[0].toStdString(), officerName, vals[1].toStdString()));
+    saveArrests();
+    info(parent,"Arrest recorded! ID: "+QString::fromStdString(id));
+}
+
+void doAddCrimeScene(QWidget* parent){
+    QStringList vals = getFormInput(parent,"Add Crime Scene",{"Linked Case ID","Location","Date (YYYY-MM-DD)","Crime Type","Description"});
+    if(vals.isEmpty()) return;
+    string id = genSceneID();
+    crimeScenes.push_back(CrimeScene(id, vals[1].toStdString(), vals[2].toStdString(), vals[3].toStdString(), vals[4].toStdString(), vals[0].toStdString()));
+    saveCrimeScenes();
+    info(parent,"Crime Scene added! ID: "+QString::fromStdString(id));
+}
+
+void doAddCourtHearing(QWidget* parent){
+    QStringList vals = getFormInput(parent,"Add Court Hearing",{"Case ID","Hearing Date (YYYY-MM-DD)","Judge Name","Verdict"});
+    if(vals.isEmpty()) return;
+    string id = genHearingID();
+    courtHearings.push_back(CourtHearing(id, vals[0].toStdString(), vals[1].toStdString(), vals[2].toStdString(), vals[3].toStdString()));
+    saveCourtHearings();
+    info(parent,"Court Hearing added! ID: "+QString::fromStdString(id));
+}
+
+void doGenerateReport(QWidget* parent, QTableWidget* table){
+    QString id = selectedCell(table,0);
+    if(id.isEmpty()){ warn(parent,"Select a criminal first."); return; }
+    int idx = findCriminal(id.toStdString());
+    if(idx==-1){ warn(parent,"Criminal not found."); return; }
+    int evCount=0, wiCount=0, viCount=0;
+    string caseStatus="No Case", verdict="N/A", caseIDFound="";
+    for(auto& a: activeCases) if(a.getLinkedCriminalID()==id.toStdString()){caseStatus="Active";caseIDFound=a.getCaseID();}
+    for(auto& c: closedCases) if(c.getLinkedCriminalID()==id.toStdString()){caseStatus="Closed";verdict=c.getVerdict();caseIDFound=c.getCaseID();}
+    for(auto& e: evidences) if(e.getLinkedCriminalID()==id.toStdString()) evCount++;
+    for(auto& w: witnesses) if(w.getLinkedCriminalID()==id.toStdString()) wiCount++;
+    for(auto& v: victims) if(v.getLinkedCriminalID()==id.toStdString()) viCount++;
+    QString report = QString(
+                         "Name: %1\nAge: %2\nCNIC: %3\nAddress: %4\nCrime Type: %5\nThreat Level: %6\n"
+                         "Case ID: %7\nCase Status: %8\nVerdict: %9\nBail Status: %10\n"
+                         "Evidence: %11 item(s)\nWitnesses: %12\nVictims: %13")
+                         .arg(QString::fromStdString(criminals[idx].getName()))
+                         .arg(criminals[idx].getAge())
+                         .arg(QString::fromStdString(criminals[idx].getCnic()))
+                         .arg(QString::fromStdString(criminals[idx].getAddress()))
+                         .arg(QString::fromStdString(criminals[idx].getCrimeType()))
+                         .arg(QString::fromStdString(criminals[idx].getThreatLvl()))
+                         .arg(QString::fromStdString(caseIDFound))
+                         .arg(QString::fromStdString(caseStatus))
+                         .arg(QString::fromStdString(verdict))
+                         .arg(QString::fromStdString(criminals[idx].getBailStatus()))
+                         .arg(evCount).arg(wiCount).arg(viCount);
+    QMessageBox::information(parent, "Criminal Report", report);
+}
+
+QWidget* buildStatsWidget(){
+    QWidget* w = new QWidget();
+    QGridLayout* g = new QGridLayout(w);
+    auto addStat = [&](int row,int col,const QString& label,int value){
+        QLabel* l = new QLabel(label);
+        QLabel* v = new QLabel(QString::number(value));
+        v->setProperty("class","statValue");
+        QVBoxLayout* box = new QVBoxLayout();
+        box->addWidget(v); box->addWidget(l);
+        QFrame* card = new QFrame(); card->setProperty("class","statCard");
+        card->setLayout(box);
+        g->addWidget(card,row,col);
+    };
+    int mostWanted=0,high=0,medium=0,low=0,onBail=0;
+    for(auto& c: criminals){
+        string t=c.getThreatLvl();
+        if(t=="MOST WANTED") mostWanted++;
+        else if(t=="HIGH") high++;
+        else if(t=="MEDIUM") medium++;
+        else low++;
+        if(c.getBailStatus()=="On Bail") onBail++;
+    }
+    addStat(0,0,"Total Criminals",(int)criminals.size());
+    addStat(0,1,"Most Wanted",mostWanted);
+    addStat(0,2,"High Threat",high);
+    addStat(0,3,"On Bail",onBail);
+    addStat(1,0,"Active Cases",(int)activeCases.size());
+    addStat(1,1,"Closed Cases",(int)closedCases.size());
+    addStat(1,2,"Total Evidence",(int)evidences.size());
+    addStat(1,3,"Total Witnesses",(int)witnesses.size());
+    addStat(2,0,"Total Victims",(int)victims.size());
+    addStat(2,1,"Total Officers",(int)officers.size());
+    addStat(2,2,"Total Detectives",(int)detectives.size());
+    addStat(2,3,"Total Meetings",(int)meetings.size());
+    return w;
+}
+
+QWidget* buildSearchTab(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->addWidget(new QLabel("Search & Filter Criminals"));
+    QHBoxLayout* row = new QHBoxLayout();
+    QComboBox* mode = new QComboBox();
+    mode->addItems({"By Name","By Criminal ID","By Threat Level","By Crime Type"});
+    QLineEdit* input = new QLineEdit();
+    QPushButton* btn = new QPushButton("Search");
+    row->addWidget(mode); row->addWidget(input); row->addWidget(btn);
+    lay->addLayout(row);
+    QTableWidget* table = makeTable({"ID","Name","Age","CNIC","Address","Crime Type","Threat Level","Bail Status"});
+    lay->addWidget(table);
+    QObject::connect(btn, &QPushButton::clicked, [=](){
+        QString q = input->text().trimmed();
+        table->setRowCount(0);
+        int row=0;
+        for(auto& c: criminals){
+            bool match=false;
+            QString m = mode->currentText();
+            if(m=="By Name") match = QString::fromStdString(toUpperStr(c.getName())).contains(q.toUpper());
+            else if(m=="By Criminal ID") match = QString::fromStdString(c.getCriminalID())==q;
+            else if(m=="By Threat Level") match = QString::fromStdString(toUpperStr(c.getThreatLvl()))==q.toUpper();
+            else if(m=="By Crime Type") match = QString::fromStdString(toUpperStr(c.getCrimeType())).contains(q.toUpper());
+            if(match){
+                table->insertRow(row);
+                setRow(table,row,{QString::fromStdString(c.getCriminalID()),QString::fromStdString(c.getName()),
+                                    QString::number(c.getAge()),QString::fromStdString(c.getCnic()),
+                                    QString::fromStdString(c.getAddress()),QString::fromStdString(c.getCrimeType()),
+                                    QString::fromStdString(c.getThreatLvl()),QString::fromStdString(c.getBailStatus())});
+                row++;
+            }
+        }
+        if(row==0) warn(w,"No records found.");
+    });
+    return w;
+}
+
+// ============================================================
+//   DASHBOARD BUILDERS
+// ============================================================
+
+// Forward declarations needed for the Logout buttons below
+// (goTo and buildWelcomePage are fully defined later in this file)
+extern QStackedWidget* gStack;
+void goTo(QWidget* w);
+QWidget* buildWelcomePage();
+
+QWidget* buildOfficerDashboard(const string& username, const string& displayName){
+    QWidget* page = new QWidget();
+    QVBoxLayout* outer = new QVBoxLayout(page);
+
+    QHBoxLayout* headerRow = new QHBoxLayout();
+    QLabel* title = new QLabel(QString("Officer Dashboard - %1").arg(QString::fromStdString(displayName)));
+    title->setProperty("class","pageTitle");
+    headerRow->addWidget(title);
+    headerRow->addStretch();
+    QPushButton* logoutBtn = new QPushButton("Logout");
+    QObject::connect(logoutBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    headerRow->addWidget(logoutBtn);
+    outer->addLayout(headerRow);
+
+    QTabWidget* tabs = new QTabWidget();
+
+    tabs->addTab(makeModuleTab("Criminals", {"ID","Name","Age","CNIC","Address","Crime Type","Threat Level","Bail Status"},
+                               refreshCriminals, {
+                                   {"Add Criminal", [page](QTableWidget* t){ doAddCriminal(page); refreshCriminals(t); }},
+                                   {"Update Selected", [page](QTableWidget* t){ doUpdateCriminal(page,t); refreshCriminals(t); }},
+                                   {"Delete Selected", [page](QTableWidget* t){ doDeleteCriminal(page,t); refreshCriminals(t); }},
+                                   {"Generate Report", [page](QTableWidget* t){ doGenerateReport(page,t); }}
+                               }), "Criminals");
+
+    tabs->addTab(makeModuleTab("Active Cases", {"Case ID","Title","Date","Description","Criminal ID","Detective","Progress"},
+                               refreshActiveCases, {
+                                   {"Add Case", [page](QTableWidget* t){ doAddCase(page); refreshActiveCases(t); }},
+                                   {"Update Selected", [page](QTableWidget* t){ doUpdateCase(page,t); refreshActiveCases(t); }}
+                               }), "Active Cases");
+
+    tabs->addTab(makeModuleTab("Closed Cases", {"Case ID","Title","Opened","Closed","Criminal ID","Detective","Verdict"},
+                               refreshClosedCases, {}), "Closed Cases");
+
+    tabs->addTab(makeModuleTab("Evidence", {"ID","Type","Description","Case ID","Criminal ID"},
+                               refreshEvidence, {
+                                   {"Add Evidence", [page](QTableWidget* t){ doAddEvidence(page); refreshEvidence(t); }}
+                               }), "Evidence");
+
+    tabs->addTab(makeModuleTab("Witnesses", {"ID","Name","Age","Statement","Protection","Case ID","Criminal ID"},
+                               refreshWitnesses, {
+                                   {"Add Witness", [page](QTableWidget* t){ doAddWitness(page); refreshWitnesses(t); }}
+                               }), "Witnesses");
+
+    tabs->addTab(makeModuleTab("Victims", {"ID","Name","Age","Injury Level","Case ID","Criminal ID"},
+                               refreshVictims, {
+                                   {"Add Victim", [page](QTableWidget* t){ doAddVictim(page); refreshVictims(t); }}
+                               }), "Victims");
+
+    string officerNameCopy = displayName;
+    tabs->addTab(makeModuleTab("Arrests", {"ID","Criminal ID","Criminal Name","Date","Officer","Location"},
+                               refreshArrests, {
+                                   {"Add Arrest", [page,officerNameCopy](QTableWidget* t){ doAddArrest(page, officerNameCopy); refreshArrests(t); }}
+                               }), "Arrests");
+
+    tabs->addTab(makeModuleTab("Crime Scenes", {"ID","Location","Date","Crime Type","Description","Case ID"},
+                               refreshCrimeScenes, {
+                                   {"Add Crime Scene", [page](QTableWidget* t){ doAddCrimeScene(page); refreshCrimeScenes(t); }}
+                               }), "Crime Scenes");
+
+    tabs->addTab(makeModuleTab("Court Hearings", {"ID","Case ID","Date","Judge","Verdict"},
+                               refreshCourtHearings, {
+                                   {"Add Hearing", [page](QTableWidget* t){ doAddCourtHearing(page); refreshCourtHearings(t); }}
+                               }), "Court Hearings");
+
+    tabs->addTab(buildSearchTab(), "Search & Filter");
+
+    tabs->addTab(makeModuleTab("Notifications", {"ID","Type","Message","Criminal","Date"},
+                               refreshNotifications, {}), "Notifications");
+
+    tabs->addTab(buildStatsWidget(), "Statistics");
+
+    outer->addWidget(tabs);
+    return page;
+}
+
+QWidget* buildDetectiveDashboard(const string& username, const string& displayName){
+    QWidget* page = new QWidget();
+    QVBoxLayout* outer = new QVBoxLayout(page);
+
+    QHBoxLayout* headerRow = new QHBoxLayout();
+    QLabel* title = new QLabel(QString("Detective Dashboard - %1").arg(QString::fromStdString(displayName)));
+    title->setProperty("class","pageTitle");
+    headerRow->addWidget(title);
+    headerRow->addStretch();
+    QPushButton* logoutBtn = new QPushButton("Logout");
+    QObject::connect(logoutBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    headerRow->addWidget(logoutBtn);
+    outer->addLayout(headerRow);
+
+    QTabWidget* tabs = new QTabWidget();
+    string user = username;
+
+    tabs->addTab(makeModuleTab("My Assigned Cases", {"Case ID","Title","Date","Description","Progress"},
+                               [user](QTableWidget* t){ refreshDetectiveAssignedCases(t,user); },
+                               {
+                                   {"Close Selected Case", [page,user](QTableWidget* t){
+                                        QString id = selectedCell(t,0);
+                                        if(id.isEmpty()){ warn(page,"Select a case first."); return; }
+                                        int idx = findActiveCase(id.toStdString());
+                                        if(idx==-1 || activeCases[idx].getAssignedDetectiveID()!=user){ warn(page,"Case not assigned to you."); return; }
+                                        QStringList vals = getFormInput(page,"Close Case",{"Verdict","Closing Date (YYYY-MM-DD)"});
+                                        if(vals.isEmpty()) return;
+                                        ClosedCase cc(activeCases[idx].getCaseID(),activeCases[idx].getTitle(),activeCases[idx].getDate(),
+                                                      activeCases[idx].getDescription(),activeCases[idx].getLinkedCriminalID(),
+                                                      vals[0].toStdString(),vals[1].toStdString(),user);
+                                        closedCases.push_back(cc);
+                                        saveClosedCases();
+                                        activeCases.erase(activeCases.begin()+idx);
+                                        saveActiveCases();
+                                        int didx = findDetective(user);
+                                        if(didx!=-1){ detectives[didx].decreaseCaseLoad(); saveDetectives(); }
+                                        refreshDetectiveAssignedCases(t,user);
+                                        info(page,"Case closed and moved to Closed Cases.");
+                                    }}
+                               }), "My Cases");
+
+    tabs->addTab(makeModuleTab("Evidence", {"ID","Type","Description","Case ID","Criminal ID"},
+                               refreshEvidence, {
+                                   {"Add Evidence (to my case)", [page,user](QTableWidget* t){
+                                        QStringList vals = getFormInput(page,"Add Evidence",{"Case ID (must be assigned to you)","Evidence Type","Description"});
+                                        if(vals.isEmpty()) return;
+                                        int idx = findActiveCase(vals[0].toStdString());
+                                        if(idx==-1 || activeCases[idx].getAssignedDetectiveID()!=user){ warn(page,"Case not found or not assigned to you."); return; }
+                                        string id = genEvidenceID();
+                                        evidences.push_back(Evidence(id, vals[1].toStdString(), vals[2].toStdString(), vals[0].toStdString(), activeCases[idx].getLinkedCriminalID()));
+                                        saveEvidence();
+                                        refreshEvidence(t);
+                                        info(page,"Evidence added! ID: "+QString::fromStdString(id));
+                                    }}
+                               }), "Evidence");
+
+    tabs->addTab(makeModuleTab("Witnesses", {"ID","Name","Age","Statement","Protection","Case ID","Criminal ID"},
+                               refreshWitnesses, {
+                                   {"Add Witness (to my case)", [page,user](QTableWidget* t){
+                                        QStringList vals = getFormInput(page,"Add Witness",{"Case ID (must be assigned to you)","Witness Name","Age","CNIC","Address","Statement","Protection Status"});
+                                        if(vals.isEmpty()) return;
+                                        int idx = findActiveCase(vals[0].toStdString());
+                                        if(idx==-1 || activeCases[idx].getAssignedDetectiveID()!=user){ warn(page,"Case not assigned to you."); return; }
+                                        string id = genWitnessID();
+                                        witnesses.push_back(Witness(id, vals[1].toStdString(), vals[2].toInt(), vals[3].toStdString(), vals[4].toStdString(), vals[5].toStdString(), vals[6].toStdString(), vals[0].toStdString(), activeCases[idx].getLinkedCriminalID()));
+                                        saveWitnesses();
+                                        refreshWitnesses(t);
+                                        info(page,"Witness added! ID: "+QString::fromStdString(id));
+                                    }}
+                               }), "Witnesses");
+
+    tabs->addTab(makeModuleTab("Victims", {"ID","Name","Age","Injury Level","Case ID","Criminal ID"}, refreshVictims, {}), "Victims");
+    tabs->addTab(makeModuleTab("Crime Scenes", {"ID","Location","Date","Crime Type","Description","Case ID"}, refreshCrimeScenes, {}), "Crime Scenes");
+    tabs->addTab(makeModuleTab("Court Hearings", {"ID","Case ID","Date","Judge","Verdict"}, refreshCourtHearings, {}), "Court Hearings");
+    tabs->addTab(buildSearchTab(), "Search & Filter");
+    tabs->addTab(makeModuleTab("Notifications", {"ID","Type","Message","Criminal","Date"}, refreshNotifications, {}), "Notifications");
+    tabs->addTab(buildStatsWidget(), "Statistics");
+
+    outer->addWidget(tabs);
+    return page;
+}
+
+QWidget* buildAdminDashboard(){
+    QWidget* page = new QWidget();
+    QVBoxLayout* outer = new QVBoxLayout(page);
+
+    QHBoxLayout* headerRow = new QHBoxLayout();
+    QLabel* title = new QLabel("Admin Panel");
+    title->setProperty("class","pageTitle");
+    headerRow->addWidget(title);
+    headerRow->addStretch();
+    QPushButton* logoutBtn = new QPushButton("Logout");
+    QObject::connect(logoutBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    headerRow->addWidget(logoutBtn);
+    outer->addLayout(headerRow);
+
+    QTabWidget* tabs = new QTabWidget();
+
+    tabs->addTab(makeModuleTab("Officers", {"ID","Name","Username","Badge No","Department","Rank"}, refreshOfficers, {}), "Officers");
+    tabs->addTab(makeModuleTab("Detectives", {"ID","Name","Username","Specialization","Case Load"}, refreshDetectives, {}), "Detectives");
+
+    tabs->addTab(makeModuleTab("Active Cases", {"Case ID","Title","Date","Description","Criminal ID","Detective","Progress"},
+                               refreshActiveCases, {
+                                   {"Assign to Detective", [page](QTableWidget* t){
+                                        QString id = selectedCell(t,0);
+                                        if(id.isEmpty()){ warn(page,"Select a case first."); return; }
+                                        int cidx = findActiveCase(id.toStdString());
+                                        if(cidx==-1){ warn(page,"Case not found."); return; }
+                                        if(detectives.empty()){ warn(page,"No detectives registered."); return; }
+                                        QStringList detOptions;
+                                        for(auto& d: detectives) detOptions << QString::fromStdString(d.getUsername()+" - "+d.getName()+" (load: "+intToStr(d.getCaseLoad())+")");
+                                        QString chosen = getChoiceDialog(page,"Assign Case","Select Detective", detOptions);
+                                        if(chosen.isEmpty()) return;
+                                        string detUser = idFromCombo(chosen);
+                                        int didx = findDetective(detUser);
+                                        if(didx==-1){ warn(page,"Detective not found."); return; }
+                                        activeCases[cidx].setAssignedDetectiveID(detUser);
+                                        saveActiveCases();
+                                        detectives[didx].increaseCaseLoad();
+                                        saveDetectives();
+                                        refreshActiveCases(t);
+                                        info(page,"Case assigned to "+QString::fromStdString(detUser));
+                                    }}
+                               }), "Active Cases");
+
+    tabs->addTab(makeModuleTab("Closed Cases", {"Case ID","Title","Opened","Closed","Criminal ID","Detective","Verdict"}, refreshClosedCases, {}), "Closed Cases");
+
+    tabs->addTab(makeModuleTab("Criminals", {"ID","Name","Age","CNIC","Address","Crime Type","Threat Level","Bail Status"},
+                               refreshCriminals, {
+                                   {"Approve Bail", [page](QTableWidget* t){
+                                        QString id = selectedCell(t,0);
+                                        if(id.isEmpty()){ warn(page,"Select a criminal first."); return; }
+                                        int idx = findCriminal(id.toStdString());
+                                        if(idx==-1){ warn(page,"Criminal not found."); return; }
+                                        QStringList vals = getFormInput(page,"Approve Bail",{"Bail Amount (PKR)","Date (YYYY-MM-DD)"});
+                                        if(vals.isEmpty()) return;
+                                        string bid = genBailID();
+                                        bails.push_back(Bail(bid, id.toStdString(), criminals[idx].getName(), vals[0].toStdString(), vals[1].toStdString(), "Admin"));
+                                        saveBails();
+                                        criminals[idx].setBailStatus("On Bail");
+                                        saveCriminals();
+                                        refreshCriminals(t);
+                                        info(page,"Bail approved! Criminal status: On Bail");
+                                    }}
+                               }), "Criminals & Bail");
+
+    tabs->addTab(makeModuleTab("Meetings", {"ID","With","Type","Date","Time"},
+                               refreshMeetings, {
+                                   {"Schedule Meeting", [page](QTableWidget* t){
+                                        QString type = getChoiceDialog(page,"Schedule Meeting","Meeting with",{"Officer","Detective"});
+                                        if(type.isEmpty()) return;
+                                        QStringList userOptions;
+                                        if(type=="Officer") for(auto& o: officers) userOptions << QString::fromStdString(o.getUsername());
+                                        else for(auto& d: detectives) userOptions << QString::fromStdString(d.getUsername());
+                                        if(userOptions.isEmpty()){ warn(page,"No "+type+"s registered."); return; }
+                                        QString user = getChoiceDialog(page,"Schedule Meeting","Select "+type, userOptions);
+                                        if(user.isEmpty()) return;
+                                        QStringList vals = getFormInput(page,"Schedule Meeting",{"Meeting Date (YYYY-MM-DD)","Meeting Time (HH:MM)"});
+                                        if(vals.isEmpty()) return;
+                                        for(auto& m: meetings)
+                                            if(m.getPersonUsername()==user.toStdString() && m.getMeetingDate()==vals[0].toStdString() && m.getMeetingTime()==vals[1].toStdString()){
+                                                warn(page,"Meeting already scheduled for this person at this time!"); return;
+                                            }
+                                        string id = genMeetingID();
+                                        meetings.push_back(Meeting(id, user.toStdString(), type.toStdString(), vals[0].toStdString(), vals[1].toStdString()));
+                                        saveMeetings();
+                                        refreshMeetings(t);
+                                        info(page,"Meeting scheduled! ID: "+QString::fromStdString(id));
+                                    }}
+                               }), "Meetings");
+
+    tabs->addTab(makeModuleTab("Notifications", {"ID","Type","Message","Criminal","Date"}, refreshNotifications, {}), "Notifications");
+    tabs->addTab(buildStatsWidget(), "Statistics");
+
+    outer->addWidget(tabs);
+    return page;
+}
+
+// ============================================================
+//   LOGIN / REGISTER / WELCOME PAGES
+// ============================================================
+
+QStackedWidget* gStack = nullptr;
+
+void goTo(QWidget* w){
+    int idx = gStack->indexOf(w);
+    if(idx==-1) idx = gStack->addWidget(w);
+    gStack->setCurrentIndex(idx);
+}
+
+QWidget* buildWelcomePage();
+
+QWidget* buildAdminLoginPage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("Admin Login"); t->setProperty("class","pageTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QFormLayout* form = new QFormLayout(card);
+    QLineEdit* user = new QLineEdit();
+    QLineEdit* pass = new QLineEdit(); pass->setEchoMode(QLineEdit::Password);
+    form->addRow("Username:", user);
+    form->addRow("Password:", pass);
+    QPushButton* loginBtn = new QPushButton("Login");
+    QPushButton* backBtn = new QPushButton("Back");
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    btnRow->addWidget(backBtn); btnRow->addWidget(loginBtn);
+    form->addRow(btnRow);
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(backBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    QObject::connect(loginBtn, &QPushButton::clicked, [w,user,pass](){
+        if(user->text()=="Admin" && pass->text()=="CYS"){
+            goTo(buildAdminDashboard());
+        } else {
+            warn(w, "Invalid admin credentials.");
+        }
+    });
+    return w;
+}
+
+QWidget* buildOfficerLoginPage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("Officer Login"); t->setProperty("class","pageTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QFormLayout* form = new QFormLayout(card);
+    QLineEdit* user = new QLineEdit();
+    QLineEdit* pass = new QLineEdit(); pass->setEchoMode(QLineEdit::Password);
+    form->addRow("Username:", user);
+    form->addRow("Password:", pass);
+    QPushButton* loginBtn = new QPushButton("Login");
+    QPushButton* backBtn = new QPushButton("Back");
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    btnRow->addWidget(backBtn); btnRow->addWidget(loginBtn);
+    form->addRow(btnRow);
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(backBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    QObject::connect(loginBtn, &QPushButton::clicked, [w,user,pass](){
+        string u = user->text().toStdString(), p = pass->text().toStdString();
+        for(auto& o: officers){
+            if(o.getUsername()==u && o.getPassword()==p){
+                goTo(buildOfficerDashboard(u, o.getName()));
+                return;
+            }
+        }
+        warn(w,"Invalid credentials.");
+    });
+    return w;
+}
+
+QWidget* buildDetectiveLoginPage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("Detective Login"); t->setProperty("class","pageTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QFormLayout* form = new QFormLayout(card);
+    QLineEdit* user = new QLineEdit();
+    QLineEdit* pass = new QLineEdit(); pass->setEchoMode(QLineEdit::Password);
+    form->addRow("Username:", user);
+    form->addRow("Password:", pass);
+    QPushButton* loginBtn = new QPushButton("Login");
+    QPushButton* backBtn = new QPushButton("Back");
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    btnRow->addWidget(backBtn); btnRow->addWidget(loginBtn);
+    form->addRow(btnRow);
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(backBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    QObject::connect(loginBtn, &QPushButton::clicked, [w,user,pass](){
+        string u = user->text().toStdString(), p = pass->text().toStdString();
+        for(auto& d: detectives){
+            if(d.getUsername()==u && d.getPassword()==p){
+                goTo(buildDetectiveDashboard(u, d.getName()));
+                return;
+            }
+        }
+        warn(w,"Invalid credentials.");
+    });
+    return w;
+}
+
+QWidget* buildOfficerRegisterPage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("Officer Registration"); t->setProperty("class","pageTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QFormLayout* form = new QFormLayout(card);
+    QLineEdit *name=new QLineEdit, *age=new QLineEdit, *cnic=new QLineEdit, *addr=new QLineEdit,
+                                                                                      *user=new QLineEdit, *pass=new QLineEdit, *badge=new QLineEdit, *dept=new QLineEdit, *rank=new QLineEdit;
+    pass->setEchoMode(QLineEdit::Password);
+    form->addRow("Full Name:", name);
+    form->addRow("Age:", age);
+    form->addRow("CNIC:", cnic);
+    form->addRow("Address:", addr);
+    form->addRow("Username:", user);
+    form->addRow("Password:", pass);
+    form->addRow("Badge No:", badge);
+    form->addRow("Department:", dept);
+    form->addRow("Rank:", rank);
+    QPushButton* regBtn = new QPushButton("Register");
+    QPushButton* backBtn = new QPushButton("Back");
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    btnRow->addWidget(backBtn); btnRow->addWidget(regBtn);
+    form->addRow(btnRow);
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(backBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    QObject::connect(regBtn, &QPushButton::clicked, [=](){
+        if(name->text().isEmpty()||age->text().isEmpty()||cnic->text().isEmpty()||addr->text().isEmpty()||
+            user->text().isEmpty()||pass->text().isEmpty()||badge->text().isEmpty()||dept->text().isEmpty()||rank->text().isEmpty()){
+            warn(w,"Please fill in all fields."); return;
+        }
+        if(findOfficer(user->text().toStdString())!=-1){ warn(w,"Username already taken."); return; }
+        string id = genOfficerID();
+        officers.push_back(Officer(id, name->text().toStdString(), age->text().toInt(), cnic->text().toStdString(),
+                                   addr->text().toStdString(), user->text().toStdString(), pass->text().toStdString(),
+                                   badge->text().toStdString(), dept->text().toStdString(), rank->text().toStdString()));
+        saveOfficers();
+        info(w,"Officer registered! ID: "+QString::fromStdString(id));
+        goTo(buildWelcomePage());
+    });
+    return w;
+}
+
+QWidget* buildDetectiveRegisterPage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("Detective Registration"); t->setProperty("class","pageTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QFormLayout* form = new QFormLayout(card);
+    QLineEdit *name=new QLineEdit, *age=new QLineEdit, *cnic=new QLineEdit, *addr=new QLineEdit,
+                                                                                      *user=new QLineEdit, *pass=new QLineEdit, *spec=new QLineEdit;
+    pass->setEchoMode(QLineEdit::Password);
+    form->addRow("Full Name:", name);
+    form->addRow("Age:", age);
+    form->addRow("CNIC:", cnic);
+    form->addRow("Address:", addr);
+    form->addRow("Username:", user);
+    form->addRow("Password:", pass);
+    form->addRow("Specialization:", spec);
+    QPushButton* regBtn = new QPushButton("Register");
+    QPushButton* backBtn = new QPushButton("Back");
+    QHBoxLayout* btnRow = new QHBoxLayout();
+    btnRow->addWidget(backBtn); btnRow->addWidget(regBtn);
+    form->addRow(btnRow);
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(backBtn, &QPushButton::clicked, [](){ goTo(buildWelcomePage()); });
+    QObject::connect(regBtn, &QPushButton::clicked, [=](){
+        if(name->text().isEmpty()||age->text().isEmpty()||cnic->text().isEmpty()||addr->text().isEmpty()||
+            user->text().isEmpty()||pass->text().isEmpty()||spec->text().isEmpty()){
+            warn(w,"Please fill in all fields."); return;
+        }
+        if(findDetective(user->text().toStdString())!=-1){ warn(w,"Username already taken."); return; }
+        string id = genDetectiveID();
+        detectives.push_back(Detective(id, name->text().toStdString(), age->text().toInt(), cnic->text().toStdString(),
+                                       addr->text().toStdString(), user->text().toStdString(), pass->text().toStdString(),
+                                       spec->text().toStdString()));
+        saveDetectives();
+        info(w,"Detective registered! ID: "+QString::fromStdString(id));
+        goTo(buildWelcomePage());
+    });
+    return w;
+}
+
+QWidget* buildWelcomePage(){
+    QWidget* w = new QWidget();
+    QVBoxLayout* lay = new QVBoxLayout(w);
+    lay->setAlignment(Qt::AlignCenter);
+    QLabel* t = new QLabel("CRIMINAL RECORD\nMANAGEMENT SYSTEM");
+    t->setAlignment(Qt::AlignCenter);
+    t->setProperty("class","heroTitle");
+    lay->addWidget(t, 0, Qt::AlignHCenter);
+
+    QFrame* card = new QFrame(); card->setProperty("class","authCard");
+    QVBoxLayout* cardLay = new QVBoxLayout(card);
+    cardLay->setSpacing(12);
+
+    QPushButton* adminBtn = new QPushButton("Admin Login");
+    QPushButton* offRegBtn = new QPushButton("Officer Register");
+    QPushButton* offLoginBtn = new QPushButton("Officer Login");
+    QPushButton* detRegBtn = new QPushButton("Detective Register");
+    QPushButton* detLoginBtn = new QPushButton("Detective Login");
+
+    cardLay->addWidget(adminBtn);
+    cardLay->addWidget(offRegBtn);
+    cardLay->addWidget(offLoginBtn);
+    cardLay->addWidget(detRegBtn);
+    cardLay->addWidget(detLoginBtn);
+
+    lay->addWidget(card, 0, Qt::AlignHCenter);
+
+    QObject::connect(adminBtn, &QPushButton::clicked, [](){ goTo(buildAdminLoginPage()); });
+    QObject::connect(offRegBtn, &QPushButton::clicked, [](){ goTo(buildOfficerRegisterPage()); });
+    QObject::connect(offLoginBtn, &QPushButton::clicked, [](){ goTo(buildOfficerLoginPage()); });
+    QObject::connect(detRegBtn, &QPushButton::clicked, [](){ goTo(buildDetectiveRegisterPage()); });
+    QObject::connect(detLoginBtn, &QPushButton::clicked, [](){ goTo(buildDetectiveLoginPage()); });
+
+    return w;
+}
+
+// ============================================================
+//   STYLESHEET - NAVY / WHITE / GREEN THEME
+// ============================================================
+
+const char* APP_STYLE = R"(
+QMainWindow, QWidget { background-color: #f4f6f9; font-family: 'Segoe UI'; font-size: 13px; color: #1c2733; }
+QLabel[class="heroTitle"] { font-size: 26px; font-weight: 800; color: #0b1f3a; margin: 24px; }
+QLabel[class="pageTitle"] { font-size: 20px; font-weight: 700; color: #0b1f3a; margin: 12px 0px 12px 4px; }
+QLabel[class="sectionHeading"] { font-size: 15px; font-weight: 700; color: #0b1f3a; margin: 6px 0px; }
+QFrame[class="authCard"] { background-color: #ffffff; border: 1px solid #d7dde5; border-radius: 10px; padding: 18px; }
+QFrame[class="statCard"] { background-color: #0b1f3a; border-radius: 10px; padding: 14px; min-width: 140px; }
+QFrame[class="statCard"] QLabel { color: #ffffff; }
+QLabel[class="statValue"] { font-size: 26px; font-weight: 800; color: #2ecc71; }
+QPushButton { background-color: #0b1f3a; color: #ffffff; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; }
+QPushButton:hover { background-color: #2ecc71; color: #0b1f3a; }
+QPushButton:pressed { background-color: #27ae60; }
+QLineEdit, QComboBox { border: 1px solid #c4ccd6; border-radius: 5px; padding: 6px; background: #ffffff; }
+QLineEdit:focus, QComboBox:focus { border: 1px solid #2ecc71; }
+QTabWidget::pane { border: 1px solid #d7dde5; background: #ffffff; border-radius: 6px; }
+QTabBar::tab { background: #e7ebf0; color: #0b1f3a; padding: 8px 16px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px; font-weight: 600; }
+QTabBar::tab:selected { background: #0b1f3a; color: #ffffff; }
+QTableWidget { background: #ffffff; alternate-background-color: #f0f3f7; gridline-color: #e3e7ec; border: none; }
+QHeaderView::section { background-color: #0b1f3a; color: #ffffff; padding: 6px; border: none; font-weight: 600; }
+QTableWidget::item:selected { background-color: #2ecc71; color: #0b1f3a; }
+)";
+
+// ============================================================
+//   MAIN
+// ============================================================
+
+int main(int argc, char *argv[]){
+    QApplication app(argc, argv);
+    app.setStyleSheet(APP_STYLE);
+
+    loadAllData();
+
+    QMainWindow window;
+    window.setWindowTitle("Criminal Record Management System");
+    window.resize(1100, 720);
+
+    QStackedWidget stack;
+    gStack = &stack;
+    gWindowRef = &window;
+
+    stack.addWidget(buildWelcomePage());
+    window.setCentralWidget(&stack);
+    window.show();
+
+    return app.exec();
+}
